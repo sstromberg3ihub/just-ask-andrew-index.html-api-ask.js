@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Just Ask Andrew — AI Edition</title>
+  <meta name="description" content="Ask Andrew… now with AI superpowers.">
+  <style>
+    :root{
+      --fg:#202124; --muted:#5f6368; --accent:#1a73e8; --bg:#fff; --chip:#f1f3f4;
+      --shadow:0 8px 20px rgba(0,0,0,.08);
+    }
+    html,body{height:100%} *{box-sizing:border-box}
+    body{margin:0; background:var(--bg); color:var(--fg);
+      font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+      display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+    header{padding:12px clamp(12px,4vw,24px); display:flex; gap:16px; align-items:center; justify-content:flex-end;}
+    header a{color:var(--muted); text-decoration:none; font-size:14px}
+    header a:hover{color:var(--fg)}
+    .wrap{flex:1; display:flex; align-items:center; justify-content:center; padding: clamp(12px,4vw,24px)}
+    .hero{width:min(720px,100%); text-align:center;}
+    .logo{font-size:clamp(28px,6vw,56px); font-weight:800; letter-spacing:.2px; margin-bottom:10px}
+    .logo .ask{color:var(--accent)}
+    .tag{color:var(--muted); margin-bottom:16px; font-size:clamp(14px,3.6vw,16px)}
+    .searchbar{display:flex; align-items:center; gap:8px; border:1px solid #dadce0; border-radius:999px; padding:10px 12px; background:#fff; box-shadow: var(--shadow); position:sticky; top:8px;}
+    .searchbar input{flex:1; border:0; outline:none; font-size:clamp(16px,4.5vw,18px); padding:10px 6px; background:transparent; min-width:0;}
+    .btn{appearance:none; border:1px solid transparent; background:var(--chip); padding:10px 14px; border-radius:999px; cursor:pointer; font-weight:700; font-size:14px}
+    .btn.primary{background:var(--accent); color:#fff} .btn:active{transform:scale(.98)}
+    .chips{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+    .chip{background:var(--chip); color:var(--muted); padding:10px 12px; border-radius:999px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; touch-action:manipulation;}
+    .chip:hover{background:#e7eaed; color:var(--fg)}
+    .mode{margin:16px 0; color:var(--muted); font-size:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+    .mode label{padding:6px 10px; border-radius:12px; background:var(--chip);} .mode input{transform:scale(1.2); margin-right:6px}
+    .answer{margin:16px auto 10px; width:min(720px,100%); text-align:left; border:1px solid #e6e8eb; border-radius:12px; padding:16px; background:#fff; box-shadow: var(--shadow)}
+    .answer h3{margin:0 0 8px 0} .answer .meta{color:var(--muted); font-size:12px; margin-bottom:8px}
+    .hidden{display:none} .blink{animation:blink 1s step-end infinite} @keyframes blink{50%{opacity:0}}
+    .tabs{margin:28px auto 60px; width:min(900px,100%)} .tabbar{display:flex; gap:8px; border-bottom:1px solid #e6e8eb; overflow:auto; padding-bottom:6px}
+    .tabbar button{background:none; border:none; padding:12px 16px; cursor:pointer; font-weight:700; color:var(--muted); border-radius:10px}
+    .tabbar button.active{color:var(--accent); border-bottom:2px solid var(--accent)}
+    .panel{display:none; padding:16px 6px} .panel.active{display:block}
+    .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px}
+    .card{border:1px solid #e6e8eb; border-radius:12px; padding:14px; background:#fff; box-shadow: var(--shadow)}
+    .card h4{margin:0 0 6px} .muted{color:var(--muted)}
+    footer{padding:22px; text-align:center; color:var(--muted); font-size:13px}
+    .spinner{display:inline-block; width:18px; height:18px; border:2px solid #ccc; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; vertical-align:-3px; margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (hover:none){ .btn, .chip { padding:12px 16px } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="#advice" onclick="openTab('advice')">Advice</a>
+    <a href="#services" onclick="openTab('services')">Services</a>
+    <a href="#about" onclick="openTab('about')">About</a>
+  </header>
+
+  <div class="wrap">
+    <main class="hero" role="main">
+      <div class="logo" aria-label="Just Ask Andrew"><span class="ask">Just Ask</span> Andrew</div>
+      <div class="tag">Why ask a search engine when you can ask Andrew? (Now with AI 🧠)</div>
+
+      <form id="askForm" class="searchbar" autocomplete="off">
+        <input id="question" type="text" placeholder="Ask Andrew anything…" aria-label="Ask Andrew" required />
+        <button class="btn" type="button" id="surprise">I'm Feeling Andrew‑ish</button>
+        <button class="btn primary" type="submit">Ask</button>
+      </form>
+
+      <!-- Rotating, linked topic chips -->
+      <div class="chips" id="chipBar" aria-label="Quick topics"></div>
+
+      <div class="mode" role="group" aria-label="Answer mode">
+        <strong>Mode:</strong>
+        <label><input type="radio" name="mode" value="fun" checked /> Fun (Magic 8‑Ball)</label>
+        <label><input type="radio" name="mode" value="ai" /> AI (AndrewGPT)</label>
+        <label><input type="radio" name="mode" value="real" /> Real (Email Andrew)</label>
+      </div>
+
+      <section id="answerBox" class="answer hidden" aria-live="polite">
+        <h3>Andrew says…</h3>
+        <div class="meta" id="answerMeta"></div>
+        <div id="answerText"></div>
+      </section>
+
+      <section id="emailBox" class="answer hidden" aria-live="polite">
+        <h3>Send to Andrew</h3>
+        <p class="muted">This will email your question to Andrew. Keep it civil… he’s 40 now.</p>
+        <form id="emailForm">
+          <div style="display:grid; gap:10px; grid-template-columns:1fr 1fr;">
+            <input type="text" id="name" placeholder="Your name" required />
+            <input type="email" id="email" placeholder="Your email (optional)" />
+          </div>
+          <textarea id="realQuestion" placeholder="Your question for Andrew" rows="5" style="width:100%; margin-top:10px" required></textarea>
+          <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap">
+            <button class="btn primary" type="submit">Send Email</button>
+            <span class="muted" style="font-size:12px">This uses your email app. Swap to a backend later if desired.</span>
+          </div>
+        </form>
+      </section>
+
+      <section class="tabs" id="extras">
+        <div class="tabbar">
+          <button id="tab-advice" class="active" onclick="openTab('advice')">Advice Corner</button>
+          <button id="tab-services" onclick="openTab('services')">Andrew’s Services</button>
+          <button id="tab-about" onclick="openTab('about')">About</button>
+        </div>
+        <div id="panel-advice" class="panel active">
+          <div class="grid" id="adviceGrid"></div>
+        </div>
+        <div id="panel-services" class="panel">
+          <div class="grid" id="servicesGrid"></div>
+        </div>
+        <div id="panel-about" class="panel">
+          <div class="card">
+            <h4>About Just Ask Andrew</h4>
+            <p>Friends kept asking Andrew for answers to everything. So for his 40th, we made it official — and gave him an AI intern. Ask away.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Just Ask Andrew · Powered by vibes & a tiny robot.
+  </footer>
+
+  <script>
+    // --- Config: Topics for rotating chips (Andrew's interests) ---
+    const TOPICS = [
+      {label:"Mowing height for cool‑season lawns", url:"https://extension.umn.edu/lawn-care/mowing-practices"},
+      {label:"Overseeding & fall lawn tips", url:"https://www.pennington.com/all-products/grass-seed/resources/how-to-overseed-a-lawn"},
+      {label:"Oil change intervals explained", url:"https://www.consumerreports.org/cars/car-maintenance/things-to-know-about-oil-changes/"},
+      {label:"EV charging basics", url:"https://www.fueleconomy.gov/feg/evtech.shtml"},
+      {label:"Subnetting made simple", url:"https://www.practicalnetworking.net/series/subnetting/"},
+      {label:"Home lab starter ideas", url:"https://www.reddit.com/r/homelab/"},
+      {label:"Pi‑hole ad‑blocking", url:"https://pi-hole.net/"},
+      {label:"LEGO building techniques", url:"https://www.brothers-brick.com/category/tutorials/"},
+      {label:"Positive dog training", url:"https://www.aspca.org/pet-care/dog-care/common-dog-behavior-issues"},
+      {label:"3D printer calibration", url:"https://teachingtechyt.github.io/calibration.html"},
+      {label:"Points & miles 101", url:"https://thepointsguy.com/guide/beginners-guide-to-points-and-miles/"},
+      {label:"Award sweet spots", url:"https://frequentmiler.com/best-award-sweet-spots/"},
+      {label:"Cruise packing checklist", url:"https://www.cruisecritic.com/articles.cfm?ID=77"},
+      {label:"Brisket 101 (Franklin)", url:"https://www.youtube.com/watch?v=VmTzdMHu5KU"},
+      {label:"Serious Eats — Food Lab", url:"https://www.seriouseats.com/the-food-lab-5117480"},
+      {label:"Concept2 rowing technique", url:"https://www.concept2.com/indoor-rowers/training/technique-videos"},
+      {label:"Beginner strength training", url:"https://www.stronglifts.com/5x5/"},
+      {label:"Track flights live", url:"https://www.flightradar24.com/"},
+      {label:"Beer styles guide", url:"https://beerandbrewing.com/beginners-guide-to-beer-styles/"},
+      {label:"Wine varietals explained", url:"https://winefolly.com/grapes/"},
+      {label:"Daily trivia", url:"https://www.jetpunk.com/"},
+      {label:"Random facts", url:"https://www.mentalfloss.com/section/amazing-facts"},
+      {label:"Music theory crash course", url:"https://www.musictheory.net/lessons"},
+      {label:"Router placement tips", url:"https://www.nytimes.com/wirecutter/blog/where-to-put-your-router/"},
+      {label:"3‑2‑1 backup strategy", url:"https://www.backblaze.com/blog/the-3-2-1-backup-strategy/"}
+    ];
+
+    // Advice text — will link to random topic URLs on each load
+    const ADVICE_TEXT = [
+      "Mow high, water deep—your roots will thank you.",
+      "Backup before you break things. Tinker after.",
+      "Use a password manager + 2FA. Future‑you approves.",
+      "Reverse sear your steaks; patience tastes better.",
+      "Charge slow when you can; your EV battery smiles.",
+      "Label cables. Your rack—and soul—gets tidier.",
+      "Calibrate your 3D printer once; enjoy it forever.",
+      "Points are a currency—earn, burn, don’t hoard.",
+      "Row with legs first, back second, arms last.",
+      "Walk the dog; debug the day.",
+      "Subnet like a pro: plan, summarize, document.",
+      "Cruise carry‑on: packing cubes are S‑tier.",
+      "LEGO SNOT (studs‑not‑on‑top) = chef’s kiss builds.",
+      "Use mesh Wi‑Fi when walls are mean.",
+      "Brisket: low and slow, rest in a cooler.",
+      "Stretch before workouts; your joints are rent‑controlled.",
+      "Planespotting: look up the tail number.",
+      "Beer cold, glass clean, pour confidently.",
+      "Music discovery hack: start with related artists.",
+      "Random fact: hotdish is a love language."
+    ];
+
+    // Fun responses & Easter eggs
+    const FUN_RESPONSES = [
+      "Absolutely, but only if there’s coffee.","I solved that in 1997.","Have you tried turning it off and on again?","Ask again after tacos.",
+      "Yes, but also no. It’s complicated.","You already know the answer: 42.","Hard pass. Try tomorrow.","Install updates. Then we’ll talk.",
+      "Approved. Proceed with swagger.","Incorrect. But I like your enthusiasm.","This calls for duct tape and optimism.","Buy once, cry once.",
+      "Let me Google— I mean, Andrew that for you.","Trust your gut. And your backup drive.","Only if you promise to hydrate.",
+      "Two words: cable management.","Reverse sear it. Thank me later.","That’s a feature, not a bug. Probably.",
+      "When the Wi‑Fi drops, so does my faith in humanity.","Use labels. Future‑you is chaotic‑good but forgetful.",
+      "We ball. Responsibly.","If it sparks joy, back it up twice.","Proceed, but with extra napkins."
+    ];
+    const EASTER_EGGS = [
+      { kw:["beer","ipa","lager","pilsner","hazy","stout"], a:"Hazy IPA if available. Kölsch when classy. Stout when cuddly." },
+      { kw:["wine","cab","pinot","riesling"], a:"Pair with friends first, food second. Try a Riesling; live a little." },
+      { kw:["grill","brisket","ribs","smoker","bbq"], a:"225°F low‑and‑slow, hot sear to finish, rest like it ran a marathon." },
+      { kw:["lawn","mow","grass","fertilizer","overseed"], a:"Mow 3–4\", sharpen blades, feed in the fall." },
+      { kw:["lego","legos","brick"], a:"SNOT builds > everything. Sort parts; save sanity." },
+      { kw:["dog","puppy","canine"], a:"Reward the behavior you want. Short sessions, big praise." },
+      { kw:["3d print","nozzle","bed","pla","abs","petg"], a:"Level the bed. Calibrate e‑steps. Dry your filament." },
+      { kw:["points","miles","award"], a:"Earn on the right card, redeem for flights, never toasters." },
+      { kw:["router","wifi","network","subnet","vlan"], a:"Document VLANs. Change default admin passwords. Twice." },
+      { kw:["row","rowing","erg","concept2"], a:"Legs—back—arms. Then arms—back—legs. Breathe." },
+      { kw:["workout","gym","lift"], a:"Progressive overload + sleep > fancy supplements." },
+      { kw:["plane","flight","aviation"], a:"Always grab 11A if you like wing views." },
+      { kw:["trivia","facts","quiz"], a:"Answer with confidence. Points for style." },
+      { kw:["music","playlist","theory"], a:"I‑V‑vi‑IV is a crowd‑pleaser. Trust me." },
+      { kw:["ev","charging","tesla","volt"], a:"Charge at home slow; road‑trip fast. Mind the curve." },
+      { kw:["car","oil","octane","gas"], a:"Use the octane your manual says. Not your ego." }
+    ];
+
+    // --- Helpers ---
+    const $ = (s)=>document.querySelector(s); const $$=(s)=>Array.from(document.querySelectorAll(s));
+    const year = new Date().getFullYear(); $('#year').textContent = year;
+    const shuffle = (arr)=>arr.map(v=>({v, r:Math.random()})).sort((a,b)=>a.r-b.r).map(o=>o.v);
+    const pick = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+    function typeInto(el, text, speed=16){ el.innerHTML=''; let i=0; return new Promise(res=>{ const t=setInterval(()=>{ el.innerHTML = text.slice(0, i++) + '<span class=\"blink\">|</span>'; if(i>text.length){clearInterval(t); el.textContent=text; res();} }, speed); }); }
+    function showAnswer(text, meta){ $('#emailBox').classList.add('hidden'); $('#answerBox').classList.remove('hidden'); $('#answerMeta').textContent = meta||''; typeInto($('#answerText'), text); window.scrollTo({top: $('#answerBox').offsetTop - 40, behavior:'smooth'}); }
+    function openTab(id){ $$('.tabbar button').forEach(b=>b.classList.remove('active')); $$('.panel').forEach(p=>p.classList.remove('active')); $('#tab-'+id)?.classList.add('active'); $('#panel-'+id)?.classList.add('active'); window.scrollTo({top: $('#extras').offsetTop - 8, behavior:'smooth'}); }
+
+    // Seed chips & advice
+    function seedChips(){ const chipBar = $('#chipBar'); chipBar.innerHTML=''; shuffle(TOPICS).slice(0,8).forEach(t=>{ const a=document.createElement('a'); a.className='chip'; a.href=t.url; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent=t.label; chipBar.appendChild(a); }); }
+    function seedAdvice(){ const adv = $('#adviceGrid'); adv.innerHTML=''; const urls = TOPICS.map(t=>t.url); const tips = shuffle(ADVICE_TEXT); tips.forEach(t=>{ const u = pick(urls); const c=document.createElement('div'); c.className='card'; c.innerHTML=`<h4>Pro tip</h4><p><a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a></p>`; adv.appendChild(c); }); }
+    function seedServices(){ const svc = $('#servicesGrid'); svc.innerHTML=''; const SERVICES=[
+      {title:"Lawn Chair Feng Shui",desc:"Optimize your backyard chi for maximum grill vibes."},
+      {title:"Advanced Beer Pong",desc:"Trajectory analysis with optional wind compensation."},
+      {title:"Premium Dad Joke Workshop",desc:"Groans guaranteed or your money back."},
+      {title:"Tech Support (Sigh Included)",desc:"I’ll fix it and pretend I’m not judging you."},
+      {title:"Trivia Night Ringer",desc:"I accept payment in nachos."},
+      {title:"USB Cable Identification",desc:"I speak USB‑C, Micro‑B, and chaos."},
+      {title:"Router Relocation & Rituals",desc:"We move it from behind the fish tank. Speeds mysteriously improve."}
+    ]; SERVICES.forEach(s=>{ const c=document.createElement('div'); c.className='card'; c.innerHTML=`<h4>${s.title}</h4><p class="muted">${s.desc}</p>`; svc.appendChild(c); }); }
+
+    // Surprise
+    $('#surprise').addEventListener('click', ()=>{ const prompts=["How high should I mow Kentucky bluegrass?","Best way to calibrate a 3D printer?","Is sous‑vide worth it for steaks?","What’s the ideal home router placement?","How do I start earning travel points?","Tips for rowing form on a Concept2?"]; $('#question').value = pick(prompts); $('#question').focus(); });
+
+    // Mode toggle behavior
+    $$('input[name="mode"]').forEach(r=>{ r.addEventListener('change', ()=>{ const mode = document.querySelector('input[name="mode"]:checked').value; if(mode==='real'){ $('#answerBox').classList.add('hidden'); $('#emailBox').classList.remove('hidden'); $('#realQuestion').value = $('#question').value || ''; } else { $('#emailBox').classList.add('hidden'); } }); });
+
+    // Ask
+    $('#askForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const q = $('#question').value.trim();
+      if(!q) return;
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+
+      if(mode==='fun'){
+        const lower = q.toLowerCase(); const egg = EASTER_EGGS.find(eg=>eg.kw.some(k=>lower.includes(k)));
+        const a = (egg && egg.a) || pick(FUN_RESPONSES);
+        showAnswer(a, `Q: ${q}`);
+        return;
+      }
+
+      if(mode==='ai'){
+        $('#answerBox').classList.remove('hidden');
+        $('#emailBox').classList.add('hidden');
+        $('#answerMeta').textContent = `Q: ${q}`;
+        $('#answerText').innerHTML = '<span class="spinner"></span>Thinking…';
+        try{
+          // If deploying on Netlify, change to: '/.netlify/functions/ask'
+          const res = await fetch('/api/ask', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ question: q })
+          });
+          if(!res.ok) throw new Error('API error');
+          const data = await res.json();
+          const text = (data && data.answer) ? data.answer.trim() : 'Hmm, AndrewGPT is speechless.';
+          showAnswer(text, `Q: ${q}`);
+        }catch(err){
+          showAnswer('My AI intern is on a snack break. Try Fun mode or ask again!', `Q: ${q}`);
+        }
+        return;
+      }
+
+      // real (email)
+      $('#emailBox').classList.remove('hidden');
+      $('#realQuestion').value = q;
+      window.scrollTo({top: $('#emailBox').offsetTop - 40, behavior:'smooth'});
+    });
+
+    // Email form handler – mailto fallback
+    document.getElementById('emailForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const name = encodeURIComponent($('#name').value.trim());
+      const email = encodeURIComponent(($('#email').value || '').trim());
+      const q = encodeURIComponent($('#realQuestion').value.trim());
+      const to = 'questions@just-ask-andrew.com';
+      const subject = `New question for Andrew from ${decodeURIComponent(name)||'Someone'}`;
+      const body = `From: ${decodeURIComponent(name)}%0AEmail: ${decodeURIComponent(email)}%0A%0AQuestion:%0A${decodeURIComponent(q)}`;
+      window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    });
+
+    // Initial render
+    seedChips(); seedAdvice(); seedServices();
+  </script>
+</body>
+</html>
